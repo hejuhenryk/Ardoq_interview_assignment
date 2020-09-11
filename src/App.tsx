@@ -76,7 +76,7 @@ function App() {
 
   React.useEffect(() => {
     let newStations = {} as Stations
-    axios.get("http://gbfs.urbansharing.com/oslobysykkel.no/station_information.json").then(r => {
+    axios.get("https://gbfs.urbansharing.com/oslobysykkel.no/station_information.json").then(r => {
       r.data.data.stations.forEach((s: StationInfo) => {
         newStations[s.station_id] = { address: s.address, lat: s.lat, lon: s.lon, name: s.name, capacity: s.capacity } as Station
       })
