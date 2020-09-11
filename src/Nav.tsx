@@ -37,7 +37,7 @@ type NavButtonProps = {
   isInUse: boolean;
   handleClick: () => void;
 }
-const NavButton: React.FC<NavButtonProps> = ({ name, isInUse, handleClick }) => <ButtonStyled onClick={handleClick} disabled={isInUse}>{name}<img src={name === "Bikes" ? pin_2 : name === "Slots" ? pin_3 : pin_1} /></ButtonStyled>
+const NavButton: React.FC<NavButtonProps> = ({ name, isInUse, handleClick }) => <ButtonStyled onClick={handleClick} disabled={isInUse}>{name}<img alt={"pin"}src={name === "Bikes" ? pin_2 : name === "Slots" ? pin_3 : pin_1} /></ButtonStyled>
 
 const ButtonStyled = styled.button`
 display: flex;
