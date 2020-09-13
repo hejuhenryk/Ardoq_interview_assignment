@@ -319,7 +319,8 @@ const containerStyle = { width: "100vw", height: "80vh" }
 function App() {
   const [center, setCenter] = React.useState(initialState.center)
   const [zoom, setZoom] = React.useState(initialState.zoom)
-  const [stations, setStations] = React.useState({} as Stations)
+  const [stations, setStations] = React.useState( [] as StationInfo[])
+  const [stationsDetails, setStationsDetails] = React.useState( {} as Stations)
   const [clickedStations, setClickStations] = React.useState([] as string[])
   const [error, setError] = React.useState(false)
   const [inUse, setInUse] = React.useState("All" as ButtonName)
@@ -327,7 +328,7 @@ function App() {
 
   const handleAddStation = (id: string) => {
     !clickedStations.includes(id) && setClickStations([...clickedStations, id])
-    setCenter({ lat: stations[id].lat, lng: stations[id].lon })
+    setCenter({ lat: stationsDetails[id].lat, lng: stationsDetails[id].lon })
     setZoom(16)
   }
   const handleRemoveStation = (id: string) => {
@@ -344,60 +345,40 @@ function App() {
     setInUse(id)
   }
 
-  // const getStations = () => {
-  //  let newStations = {} as Stations
-  //   axios.get("https://gbfs.urbansharing.com/oslobysykkel.no/station_information.json").then(r => {
-  //     r.data.data.stations.forEach((s: StationInfo) => {
-  //       newStations[s.station_id] = { address: s.address, lat: s.lat, lon: s.lon, name: s.name, capacity: s.capacity } as Station
-  //     })
-  //     setStations(newStations)
-  //   }).catch(err => {
-  //     setCenter(initialState.center)
-  //     setZoom(12)
-  //     setError(true)
-  //   })
-  // }
-  // const getStationsDetails = React.useCallback(() => {
-  //   const newStations = {...stations}
-  //   axios.get("https://gbfs.urbansharing.com/oslobysykkel.no/station_status.json").then(r => {
-  //     r.data.data.stations.forEach((s: StationStatus) => {
-  //       if (newStations[s.station_id]) newStations[s.station_id] = { ...newStations[s.station_id], ...s }
-  //     })
-  //     setStations({...newStations})
-  // }).catch(err => {
-  //   setCenter(initialState.center)
-  //   setZoom(12)
-  //   setError(true)
-  // })
-  // },[stations])
-  
+ const getStationsDetails = React.useCallback(()=>{
+  const newStations = {} as Stations
+  stations.forEach(s=>{
+    const {station_id, ...sd} = s
+    newStations[s.station_id] = {...sd} as Station
+  })
+  axios.get("https://gbfs.urbansharing.com/oslobysykkel.no/station_status.json").then(r => {
+    r.data.data.stations.forEach((s: StationStatus) => {
+      if (newStations[s.station_id]) newStations[s.station_id] = { ...newStations[s.station_id], ...s }
+    })
+    setStationsDetails(newStations)
+    }).catch(err => {
+      setCenter(initialState.center)
+      setZoom(12)
+      setError(true)
+    })    
+ },[stations])
 
-  // React.useEffect(() => {
-  //   getStationsDetails();
-  // }, [inUse])
-
-  // React.useEffect(()=>{},[error])
-  
-
-  React.useEffect(() => {
-    let newStations = {} as Stations
-    axios.get("https://gbfs.urbansharing.com/oslobysykkel.no/station_information.json").then(r => {
-      r.data.data.stations.forEach((s: StationInfo) => {
-        newStations[s.station_id] = { address: s.address, lat: s.lat, lon: s.lon, name: s.name, capacity: s.capacity } as Station
-      })
-    }).then(() => {
-      axios.get("https://gbfs.urbansharing.com/oslobysykkel.no/station_status.json").then(r => {
-        r.data.data.stations.forEach((s: StationStatus) => {
-          if (newStations[s.station_id]) newStations[s.station_id] = { ...newStations[s.station_id], ...s }
-        })
-        setStations(newStations)
-      })
+  const getStationsInfo = React.useCallback(()=>{
+   axios.get("https://gbfs.urbansharing.com/oslobysykkel.no/station_information.json").then(r => {
+     setStations([...r.data.data.stations])
     }).catch(err => {
       setCenter(initialState.center)
       setZoom(12)
       setError(true)
     })
-  }, [error, inUse])
+  },[])
+  
+  React.useEffect(() => {
+    getStationsInfo()
+  }, [error, getStationsInfo])
+  React.useEffect(()=>{
+    getStationsDetails()
+  },[inUse, getStationsDetails])
 
   return (
     <>
@@ -405,7 +386,6 @@ function App() {
       <LoadScript
         id="script-loader"
         googleMapsApiKey={API_KEY}
-        // onLoad={getStations}
       >
         <GoogleMap
           id='oslosykel-map'
@@ -420,7 +400,7 @@ function App() {
           {/* show markers */}
           <MarkerClusterer options={{imagePath: "https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m"}}>
           {(clusterer)=>{ 
-            return Object.keys(stations).map(key => ({ ...stations[key], station_id: key })).map(s => {
+            return Object.keys(stationsDetails).map(key => ({ ...stationsDetails[key], station_id: key })).map(s => {
               const isMarker = inUse === "Bikes" 
                 ? (s.is_renting === 1 && s.num_bikes_available > 0): inUse === "Slots" 
                 ? (s.is_returning === 1 && s.num_docks_available > 0) : inUse === "All"
@@ -437,7 +417,7 @@ function App() {
 
           {
           }
-          {clickedStations.map(cs => stations[cs] && <StationInfo key={cs} id={cs} station={stations[cs]} handleClick={handleRemoveStation} />)}
+          {clickedStations.map(cs => stationsDetails[cs] && <StationInfo key={cs} id={cs} station={stationsDetails[cs]} handleClick={handleRemoveStation} />)}
           <></>
         </GoogleMap>
       </LoadScript>
