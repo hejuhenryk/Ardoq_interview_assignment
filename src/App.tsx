@@ -322,6 +322,7 @@ function App() {
   const [stations, setStations] = React.useState( [] as StationInfo[])
   const [stationsDetails, setStationsDetails] = React.useState( {} as Stations)
   const [clickedStations, setClickStations] = React.useState([] as string[])
+  const [isLoading, setIsLoading] = React.useState(true)
   const [error, setError] = React.useState(false)
   const [inUse, setInUse] = React.useState("All" as ButtonName)
 
@@ -347,6 +348,7 @@ function App() {
 
  const getStationsDetails = React.useCallback(()=>{
   const newStations = {} as Stations
+  setIsLoading(true)
   stations.forEach(s=>{
     const {station_id, ...sd} = s
     newStations[s.station_id] = {...sd} as Station
@@ -356,21 +358,28 @@ function App() {
       if (newStations[s.station_id]) newStations[s.station_id] = { ...newStations[s.station_id], ...s }
     })
     setStationsDetails(newStations)
+    setIsLoading(false)
     }).catch(err => {
       setCenter(initialState.center)
       setZoom(12)
       setError(true)
-    })    
+      setIsLoading(false)
+    })
  },[stations])
 
   const getStationsInfo = React.useCallback(()=>{
-   axios.get("https://gbfs.urbansharing.com/oslobysykkel.no/station_information.json").then(r => {
-     setStations([...r.data.data.stations])
+    setIsLoading(true)
+    axios.get("https://gbfs.urbansharing.com/oslobysykkel.no/station_information.json").then(r => {
+      setStations([...r.data.data.stations])
+      setIsLoading(false)
+
     }).catch(err => {
       setCenter(initialState.center)
       setZoom(12)
       setError(true)
+      setIsLoading(false)
     })
+
   },[])
   
   React.useEffect(() => {
@@ -382,10 +391,11 @@ function App() {
 
   return (
     <>
-      <Nav inUse={inUse} setInUse={handleSetInUse} />
+      <Nav inUse={inUse} setInUse={handleSetInUse} onReload={getStationsDetails} isLoading={isLoading}/>
       <LoadScript
         id="script-loader"
         googleMapsApiKey={API_KEY}
+        onLoad={getStationsInfo}
       >
         <GoogleMap
           id='oslosykel-map'
