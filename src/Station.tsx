@@ -11,7 +11,7 @@ type StationInfoProps = {
     handleClick: (id: string) => void;
 }
 
-export const StationInfo: React.FC<StationInfoProps> = ({ station, id, handleClick }) => {
+export const StationInfo: React.FC<StationInfoProps> = React.memo(({ station, id, handleClick }) => {
     const position = { lat: station.lat, lng: station.lon }
     const options = { closeBoxURL: '', enableEventPropagation: true };
     return <InfoBox position={position} options={options}>
@@ -25,7 +25,7 @@ export const StationInfo: React.FC<StationInfoProps> = ({ station, id, handleCli
             </div>
         </InfoContainer>
     </InfoBox>
-}
+})
 
 const InfoContainer = styled.div`
     background-color: #ffffff;

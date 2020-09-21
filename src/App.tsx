@@ -10,16 +10,14 @@ import pin_3 from './icons/pin_3.png'
 import { Nav, ButtonName } from './Nav';
 import { StationInfo } from './Station';
 import { Theme, ThemeProvider, toogleTheme, getMapOptions } from './theme';
+import styled from 'styled-components';
 
 
 dotenv.config();
 
 const API_KEY = process.env.REACT_APP_API_KEY
 
-const initialState = {
-  center: { lat: 59.91, lng: 10.75 },
-  zoom: 12
-}
+
 type StationInfo = {
   station_id: string;
   name: string;
@@ -39,48 +37,123 @@ type StationStatus = {
 }
 
 export type Station = Omit<(StationInfo & StationStatus), 'station_id'>;
-
+type Center ={
+  lat: number;
+  lng: number;
+}
 type Stations = {
   [key: string]: Station;
 }
 
 const containerStyle = { width: "100vw", height: "80vh" }
 
+const initialState = {
+  center: { lat: 59.91, lng: 10.75 },
+  zoom: 12, 
+  stationsInfo: [] as StationInfo[],
+  stationsDetails: {} as Stations,
+  clickedStations: [] as string[],
+  isLoading: false,
+  error: false,
+  inUse: "All" as ButtonName,
+  theme: "light" as Theme
+}
+
+type AppState = typeof initialState
+type Action<T extends string> = {type: T}
+type ActionWithPayload<T extends string, P> = {type: T, payload: P} 
+type Actions = 
+  | Action<"ToogleTheme" | "SetError" | "RemoveError" | "SetLoading" | "RemoveLoading" | "SetInitialState" | "RemoveAllClickedStation"> 
+  | ActionWithPayload<"SetInUse", ButtonName>
+  | ActionWithPayload<"RemoveClickedStation" | "AddClickStation" | "SetCenterToStation" , string>
+  | ActionWithPayload<"SetZoom", number> 
+  | ActionWithPayload<"SetStations", StationInfo[]> 
+  | ActionWithPayload<"SetStationsDetails", Stations> 
+  | ActionWithPayload<"SetCenter", Center> 
+  
+
+const reducer = (state: AppState, action: Actions): AppState => {
+  const getDelta = () => {
+    switch (action.type) {
+      case "ToogleTheme":
+        return { theme: toogleTheme(state.theme)}
+      case "SetError":
+        return { error: true }
+      case "RemoveError": 
+        return { error: false }
+      case "SetLoading": 
+        return { loading: true }
+      case "RemoveLoading": 
+        return { loading: false }
+      case "SetInitialState": 
+        return { ...initialState }
+      case "SetInUse": 
+        return { inUse: action.payload }
+      case "SetZoom":
+        return { zoom: action.payload }
+      case "RemoveAllClickedStation":
+        return { clickedStations: [] }
+      case "RemoveClickedStation":
+        return { clickedStations: state.clickedStations.filter(s => s !== action.payload) }
+      case "AddClickStation": {
+        return { clickedStation: !state.clickedStations.includes(action.payload) ? [...state.clickedStations, action.payload] : state.clickedStations }
+      }
+      case "SetCenterToStation": 
+        return { center: {
+          lat: state.stationsDetails[action.payload].lat,
+          lng: state.stationsDetails[action.payload].lon
+        } }
+      case "SetCenter": 
+        return {
+            lat: action.payload.lat,
+            lng: action.payload.lng
+        }
+      case "SetStationsDetails": 
+        return { stationsDetails: action.payload }
+      case "SetStations": 
+        return { stationsInfo: action.payload }
+    }
+
+  }
+  return {...state, ...getDelta()};
+}
+
 function App() {
-  const [center, setCenter] = React.useState(initialState.center)
-  const [zoom, setZoom] = React.useState(initialState.zoom)
-  const [stations, setStations] = React.useState( [] as StationInfo[])
-  const [stationsDetails, setStationsDetails] = React.useState( {} as Stations)
-  const [clickedStations, setClickStations] = React.useState([] as string[])
-  const [isLoading, setIsLoading] = React.useState(true)
-  const [error, setError] = React.useState(false)
-  const [inUse, setInUse] = React.useState('All' as ButtonName)
-  const [theme, setTheme] = React.useState('light' as Theme)
+  const [state, dispatch] = React.useReducer(reducer, initialState);
+  // const [center, setCenter] = React.useState(initialState.center)
+  // const [zoom, setZoom] = React.useState(initialState.zoom)
+  // const [stations, setStations] = React.useState( [] as StationInfo[])
+  // const [stationsDetails, setStationsDetails] = React.useState( {} as Stations)
+  // const [clickedStations, setClickStations] = React.useState([] as string[])
+  // const [isLoading, setIsLoading] = React.useState(true)
+  // const [error, setError] = React.useState(false)
+  // const [inUse, setInUse] = React.useState('All' as ButtonName)
  
 
   const handleAddStation = (id: string) => {
-    !clickedStations.includes(id) && setClickStations([...clickedStations, id])
-    setCenter({ lat: stationsDetails[id].lat, lng: stationsDetails[id].lon })
-    setZoom(16)
+    dispatch({type: "AddClickStation", payload: id})
+    dispatch({type: "SetCenterToStation", payload: id})
+    dispatch({type: "SetZoom", payload: 16})
   }
   const handleRemoveStation = (id: string) => {
-    setClickStations(clickedStations.filter(s => s !== id))
-    setZoom(12)
+    dispatch({type: "RemoveClickedStation", payload: id})
+    dispatch({type: "SetZoom", payload: 16})
   }
 
   const handleMapClick = () => {
-    setClickStations([])
-    setZoom(12)
+    dispatch({type: "RemoveAllClickedStation"})
+    dispatch({type: "SetZoom", payload: 12})
   }
   const handleSetInUse = (id: any) => {
-    setClickStations([])
-    setInUse(id)
+    dispatch({type: "RemoveAllClickedStation"})
+    dispatch({type: "SetInUse", payload: id})
   }
 
  const getStationsDetails = React.useCallback(()=>{
   const newStations = {} as Stations
-  setIsLoading(true)
-  stations.forEach(s=>{
+  dispatch({type: "SetLoading"})
+  dispatch({type: "RemoveError"})
+  state.stationsInfo.forEach(s=>{
     const {station_id, ...sd} = s
     newStations[s.station_id] = {...sd} as Station
   })
@@ -88,41 +161,43 @@ function App() {
     r.data.data.stations.forEach((s: StationStatus) => {
       if (newStations[s.station_id]) newStations[s.station_id] = { ...newStations[s.station_id], ...s }
     })
-    setStationsDetails(newStations)
-    setIsLoading(false)
+    dispatch({type: "SetStationsDetails", payload: newStations})
+    dispatch({type: "RemoveLoading"})
     }).catch(err => {
-      setCenter(initialState.center)
-      setZoom(12)
-      setError(true)
-      setIsLoading(false)
+      dispatch({type: "SetCenter", payload: initialState.center})
+      dispatch({type: "SetZoom", payload: 12})
+      dispatch({type: "SetError"})
+      dispatch({type: "RemoveLoading"})
     })
- },[stations])
+ },[state.stationsInfo])
 
   const getStationsInfo = React.useCallback(()=>{
-    setIsLoading(true)
+    dispatch({type: "SetLoading"})
+    dispatch({type: "RemoveError"})
     axios.get("https://gbfs.urbansharing.com/oslobysykkel.no/station_information.json").then(r => {
-      setStations([...r.data.data.stations])
-      setIsLoading(false)
+      dispatch({type: "SetStations", payload: [...r.data.data.stations] })
+
+      dispatch({type: "RemoveLoading"})
 
     }).catch(err => {
-      setCenter(initialState.center)
-      setZoom(12)
-      setError(true)
-      setIsLoading(false)
+      dispatch({type: "SetCenter", payload: initialState.center})
+      dispatch({type: "SetZoom", payload: 12})
+      dispatch({type: "SetError"})
+      dispatch({type: "RemoveLoading"})
     })
 
   },[])
   
   React.useEffect(() => {
     getStationsInfo()
-  }, [error, getStationsInfo])
+  }, [state.error, getStationsInfo])
   React.useEffect(()=>{
     getStationsDetails()
-  },[inUse, getStationsDetails])
+  },[state.inUse, getStationsDetails])
 
   return (
-    <ThemeProvider theme={theme}>
-      <Nav inUse={inUse} setInUse={handleSetInUse} onReload={getStationsDetails} isLoading={isLoading} theme={theme} toogleTheme={()=>setTheme(theme=>toogleTheme(theme))} />
+    <ThemeProvider theme={state.theme}>
+      <Nav inUse={state.inUse} setInUse={handleSetInUse} onReload={getStationsDetails} isLoading={state.isLoading} theme={state.theme} toogleTheme={()=>dispatch({type: "ToogleTheme"})} />
       <LoadScript
         id="script-loader"
         googleMapsApiKey={API_KEY}
@@ -131,45 +206,47 @@ function App() {
         <GoogleMap
           id='oslosykel-map'
           mapContainerStyle={containerStyle}
-          center={center}
-          zoom={zoom}
+          center={state.center}
+          zoom={state.zoom}
           onClick={handleMapClick}
-          options={getMapOptions(theme)}
+          options={getMapOptions(state.theme)}
         >
           {/* error handling */}
-          {error && <InfoWindow position={center} onCloseClick={()=>setError(false)} ><h3>DATA WAS NOT FETCHED</h3></InfoWindow>}
+          {state.error && <InfoWindow position={state.center} onCloseClick={()=>dispatch({type: "RemoveError"})} ><h3>DATA WAS NOT FETCHED</h3></InfoWindow>}
           {/* show markers */}
           <MarkerClusterer options={{imagePath: "https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m"}}>
           {(clusterer)=>{ 
-            return Object.keys(stationsDetails).map(key => ({ ...stationsDetails[key], station_id: key })).map(s => {
-              const isMarker = inUse === "Bikes" 
-                ? (s.is_renting === 1 && s.num_bikes_available > 0): inUse === "Slots" 
-                ? (s.is_returning === 1 && s.num_docks_available > 0) : inUse === "All"
+            return Object.keys(state.stationsDetails).map(key => ({ ...state.stationsDetails[key], station_id: key })).map(s => {
+              const isMarker = state.inUse === "Bikes" 
+                ? (s.is_renting === 1 && s.num_bikes_available > 0): state.inUse === "Slots" 
+                ? (s.is_returning === 1 && s.num_docks_available > 0) : state.inUse === "All"
               return isMarker && <Marker 
                 key={s.station_id} 
                 position={{ lat: s.lat, lng: s.lon }} 
-                icon={inUse==="Slots" ? pin_3 : inUse === "Bikes" ? pin_2 : pin_1} 
+                icon={state.inUse==="Slots" ? pin_3 : state.inUse === "Bikes" ? pin_2 : pin_1} 
                 onClick={() => handleAddStation(s.station_id)} 
                 clusterer={clusterer}
               />
             })
           }}
           </MarkerClusterer>
-
-          {
-          }
-          {clickedStations.map(cs => stationsDetails[cs] && <StationInfo key={cs} id={cs} station={stationsDetails[cs]} handleClick={handleRemoveStation} />)}
+          {state.clickedStations.map(cs => state.stationsDetails[cs] && <StationInfo key={cs} id={cs} station={state.stationsDetails[cs]} handleClick={handleRemoveStation} />)}
           <></>
         </GoogleMap>
       </LoadScript>
-      <div style={{position: "fixed", bottom: 0, right: 0}}>Icons made by <a style={{ color: "inherit", textDecoration: "none"}} href="http://www.freepik.com/" title="Freepik">Freepik</a> from <a style={{ color: "inherit", textDecoration: "none"}} href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a></div>
+      <Footer >Icons made by <a style={{ color: "inherit", textDecoration: "none"}} href="http://www.freepik.com/" title="Freepik">Freepik</a> from <a style={{ color: "inherit", textDecoration: "none"}} href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a></Footer>
+    
     </ThemeProvider>
   );
 }
 
 export default App;
 
-
+const Footer = styled.footer`
+  position: fixed;
+  bottom: 0;
+  right: 0;
+`
 
 
 
