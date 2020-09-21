@@ -96,7 +96,7 @@ const reducer = (state: AppState, action: Actions): AppState => {
       case "RemoveClickedStation":
         return { clickedStations: state.clickedStations.filter(s => s !== action.payload) }
       case "AddClickStation": {
-        return { clickedStation: !state.clickedStations.includes(action.payload) ? [...state.clickedStations, action.payload] : state.clickedStations }
+        return { clickedStations: !state.clickedStations.includes(action.payload) ? [...state.clickedStations, action.payload] : [...state.clickedStations] }
       }
       case "SetCenterToStation": 
         return { center: {
@@ -104,7 +104,7 @@ const reducer = (state: AppState, action: Actions): AppState => {
           lng: state.stationsDetails[action.payload].lon
         } }
       case "SetCenter": 
-        return { center: {...action.payload}}
+        return {center: { ...action.payload}}
       case "SetStationsDetails": 
         return { stationsDetails: action.payload }
       case "SetStations": 
@@ -126,7 +126,7 @@ function App() {
   }
   const handleRemoveStation = (id: string) => {
     dispatch({type: "RemoveClickedStation", payload: id})
-    dispatch({type: "SetZoom", payload: 16})
+    dispatch({type: "SetZoom", payload: 12})
   }
 
   const handleMapClick = () => {
@@ -141,7 +141,6 @@ function App() {
  const getStationsDetails = React.useCallback(()=>{
   const newStations = {} as Stations
   dispatch({type: "SetLoading"})
-  dispatch({type: "RemoveError"})
   state.stationsInfo.forEach(s=>{
     const {station_id, ...sd} = s
     newStations[s.station_id] = {...sd} as Station
@@ -153,25 +152,24 @@ function App() {
     dispatch({type: "SetStationsDetails", payload: newStations})
     dispatch({type: "RemoveLoading"})
     }).catch(err => {
-      dispatch({type: "SetCenter", payload: {...initialState.center}})
-      dispatch({type: "SetZoom", payload: 12})
       dispatch({type: "SetError"})
+      dispatch({type: "SetCenter", payload: initialState.center })
+      dispatch({type: "SetZoom", payload: 12})
       dispatch({type: "RemoveLoading"})
     })
  },[state.stationsInfo])
 
   const getStationsInfo = React.useCallback(()=>{
     dispatch({type: "SetLoading"})
-    dispatch({type: "RemoveError"})
     axios.get("https://gbfs.urbansharing.com/oslobysykkel.no/station_information.json").then(r => {
       dispatch({type: "SetStations", payload: [...r.data.data.stations] })
 
       dispatch({type: "RemoveLoading"})
 
     }).catch(err => {
+      dispatch({type: "SetError"})
       dispatch({type: "SetCenter", payload: initialState.center})
       dispatch({type: "SetZoom", payload: 12})
-      dispatch({type: "SetError"})
       dispatch({type: "RemoveLoading"})
     })
 
