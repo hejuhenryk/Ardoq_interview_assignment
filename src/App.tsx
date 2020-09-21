@@ -37,7 +37,7 @@ type StationStatus = {
 }
 
 export type Station = Omit<(StationInfo & StationStatus), 'station_id'>;
-type Center ={
+type Center = {
   lat: number;
   lng: number;
 }
@@ -104,10 +104,7 @@ const reducer = (state: AppState, action: Actions): AppState => {
           lng: state.stationsDetails[action.payload].lon
         } }
       case "SetCenter": 
-        return {
-            lat: action.payload.lat,
-            lng: action.payload.lng
-        }
+        return { center: {...action.payload}}
       case "SetStationsDetails": 
         return { stationsDetails: action.payload }
       case "SetStations": 
@@ -115,20 +112,12 @@ const reducer = (state: AppState, action: Actions): AppState => {
     }
 
   }
+  console.log(getDelta())
   return {...state, ...getDelta()};
 }
 
 function App() {
   const [state, dispatch] = React.useReducer(reducer, initialState);
-  // const [center, setCenter] = React.useState(initialState.center)
-  // const [zoom, setZoom] = React.useState(initialState.zoom)
-  // const [stations, setStations] = React.useState( [] as StationInfo[])
-  // const [stationsDetails, setStationsDetails] = React.useState( {} as Stations)
-  // const [clickedStations, setClickStations] = React.useState([] as string[])
-  // const [isLoading, setIsLoading] = React.useState(true)
-  // const [error, setError] = React.useState(false)
-  // const [inUse, setInUse] = React.useState('All' as ButtonName)
- 
 
   const handleAddStation = (id: string) => {
     dispatch({type: "AddClickStation", payload: id})
@@ -164,7 +153,7 @@ function App() {
     dispatch({type: "SetStationsDetails", payload: newStations})
     dispatch({type: "RemoveLoading"})
     }).catch(err => {
-      dispatch({type: "SetCenter", payload: initialState.center})
+      dispatch({type: "SetCenter", payload: {...initialState.center}})
       dispatch({type: "SetZoom", payload: 12})
       dispatch({type: "SetError"})
       dispatch({type: "RemoveLoading"})
