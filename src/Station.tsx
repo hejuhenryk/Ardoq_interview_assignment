@@ -1,7 +1,7 @@
 import * as React from 'react'
 import styled from 'styled-components'
 import { InfoBox } from '@react-google-maps/api'
-import { Station } from './App'
+import { Station } from './state'
 import bike from './icons/bike.png'
 import bike_parking from './icons/bike_parking.png'
 

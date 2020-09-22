@@ -8,27 +8,27 @@ import dark from './icons/dark.png'
 import light from './icons/light.png'
 import reload from './icons/reload.png'
 import { Theme } from './theme'
+import { ButtonName } from './state'
 
-export type ButtonName = "All" | "Bikes" | "Slots"
 type NavProps = {
   inUse: ButtonName;
-  theme: Theme;
+  currentTheme: Theme;
   toogleTheme: ()=>void;
   isLoading: boolean;
   setInUse: (n: ButtonName) => void;
   onReload: ()=>void;
 }
-export const Nav: React.FC<NavProps> = ({ inUse, setInUse, onReload, isLoading, theme, toogleTheme }) => {
-  return <NavStyled>
-    <RealodButton onReload={onReload} isLoading={isLoading} />
+export const Nav: React.FC<NavProps> = ({inUse, setInUse, ...p}) =>  
+  <NavStyled>
+    <RealodButton onReload={p.onReload} isLoading={p.isLoading} />
     <div>
       <NavButton name="Bikes" isInUse={inUse === "Bikes"} handleClick={() => setInUse("Bikes")} />
       <NavButton name="Slots" isInUse={inUse === "Slots"} handleClick={() => setInUse("Slots")} />
       <NavButton name="All" isInUse={inUse === "All"} handleClick={() => setInUse("All")} />
     </div>
-    <ModeToogle theme={theme} onClick={toogleTheme} />
+    <ModeToogle currentTheme={p.currentTheme} toogleTheme={p.toogleTheme} />
   </NavStyled>
-}
+
 
 const NavStyled = styled.nav`
     display: flex;
@@ -81,7 +81,8 @@ const ButtonStyled = styled.button`
     border: 1px transparent solid;
   }
   `
-const RealodButton: React.FC<{onReload: ()=>void; isLoading: boolean}> = ({onReload, isLoading}) => <ReloadButtonStyled onClick={onReload} isLoading={isLoading}><img alt="reload" src={reload} /></ReloadButtonStyled>
+type ReloadButtonProps = Pick<NavProps, "isLoading" | "onReload">
+const RealodButton: React.FC<ReloadButtonProps> = p => <ReloadButtonStyled onClick={p.onReload} isLoading={p.isLoading}><img alt="reload" src={reload} /></ReloadButtonStyled>
 
 const spin = keyframes`
   from {
@@ -92,7 +93,7 @@ const spin = keyframes`
   }
 `
 
-const ReloadButtonStyled = styled(ButtonStyled)<{isLoading: boolean}>`
+const ReloadButtonStyled = styled(ButtonStyled)<Pick<ReloadButtonProps, "isLoading">>`
   width: 1rem;
   @media (max-width: 470px) {
     position: absolute;
@@ -104,17 +105,14 @@ const ReloadButtonStyled = styled(ButtonStyled)<{isLoading: boolean}>`
     animation: ${spin} ${p=>p.isLoading ? "1s" : "0"} linear infinite;
   }
 `
-
-const ModeToogle: React.FC<{theme: Theme; onClick: ()=>void}> = ({theme, onClick}) => {
-
-  return <ToogleStyled onClick={onClick} t={theme}>
+type ModeToogleProps = Pick<NavProps, "currentTheme" | "toogleTheme">
+const ModeToogle: React.FC<ModeToogleProps> = p => 
+  <ToogleStyled onClick={p.toogleTheme} currentTheme={p.currentTheme}>
     <img src={dark} alt='dark moon' className='dark' />
     <img src={light} alt='light sun' className='light' />
-
   </ToogleStyled>
-}
 
-const ToogleStyled = styled(ButtonStyled)<{t: Theme}>`
+const ToogleStyled = styled(ButtonStyled)<Pick<ModeToogleProps, "currentTheme">>`
   position: relative;
   overflow: hidden;
   height: 2rem;
@@ -133,10 +131,10 @@ const ToogleStyled = styled(ButtonStyled)<{t: Theme}>`
     transition: all 1s ease-in-out;
     margin: 0;
     &.dark {
-      top: ${p=>p.t === 'light' ? '50%' : '200%'};
+      top: ${p=>p.currentTheme === 'light' ? '50%' : '200%'};
     }
     &.light {
-      top: ${p=>p.t === 'light' ? '-100%' : '50%'};
+      top: ${p=>p.currentTheme === 'light' ? '-100%' : '50%'};
     }
   }
 `
